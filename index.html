@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>MeasureUp</title>
+<meta name="description" content="Track measurements of rooms, furniture, and objects with automatic imperial/metric conversion.">
+<meta name="theme-color" content="#141922">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MeasureUp">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#141922;
+    --bg-raised:#1c2330;
+    --panel:#212a3a;
+    --panel-line: rgba(233,234,238,0.08);
+    --ink:#E9EAEE;
+    --ink-dim:#8B93A6;
+    --ink-faint:#5B6478;
+    --accent:#FFC53D;      /* tape-measure yellow */
+    --accent-ink:#241a02;
+    --steel:#4C9AAE;       /* steel blue secondary accent */
+    --danger:#E05C4F;
+    --success:#4FAE7C;
+    --radius-sm:6px;
+    --radius-md:10px;
+    --radius-lg:16px;
+    --font-display:'Big Shoulders Display', sans-serif;
+    --font-body:'IBM Plex Sans', sans-serif;
+    --font-mono:'IBM Plex Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--font-body);
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  #app{
+    display:flex;
+    min-height:100vh;
+    max-width:1100px;
+    margin:0 auto;
+  }
+
+  /* ---------- Tick-mark texture used as a subtle background rule ---------- */
+  .ticks{
+    background-image: repeating-linear-gradient(90deg, var(--panel-line) 0 1px, transparent 1px 8px);
+    background-position: left center;
+  }
+
+  /* ---------- Sidebar (desktop) / Bottom nav (mobile) ---------- */
+  #sidenav{
+    width:96px;
+    flex-shrink:0;
+    border-right:1px solid var(--panel-line);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:20px 0;
+    gap:6px;
+    position:sticky;
+    top:0;
+    height:100vh;
+  }
+  .brand-mark{
+    width:48px;height:48px;border-radius:12px;
+    background:var(--bg-raised);
+    border:1px solid var(--panel-line);
+    display:flex;align-items:center;justify-content:center;
+    margin-bottom:18px;
+    flex-shrink:0;
+    overflow:hidden;
+  }
+  .brand-mark img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .nav-btn{
+    width:100%;
+    background:none;
+    border:none;
+    color:var(--ink-dim);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:6px;
+    padding:12px 4px;
+    cursor:pointer;
+    font-family:var(--font-body);
+    font-size:11px;
+    font-weight:500;
+    letter-spacing:0.3px;
+    border-radius:var(--radius-sm);
+    transition:color .15s ease, background .15s ease;
+  }
+  .nav-btn svg{width:22px;height:22px;}
+  .nav-btn:hover{ color:var(--ink); background:var(--panel); }
+  .nav-btn.active{ color:var(--accent); }
+  .nav-btn.active svg{ filter:drop-shadow(0 0 6px rgba(255,197,61,0.35)); }
+  .nav-btn.add-btn{
+    color:var(--accent-ink);
+    background:var(--accent);
+    margin:8px 0 14px;
+    border-radius:var(--radius-md);
+  }
+  .nav-btn.add-btn:hover{ background:#ffd25e; }
+
+  /* ---------- Main column ---------- */
+  #main{
+    flex:1;
+    min-width:0;
+    padding:28px 28px 100px;
+  }
+  header.topbar{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:16px;
+    margin-bottom:22px;
+  }
+  .wordmark{
+    font-family:var(--font-display);
+    font-weight:800;
+    font-size:34px;
+    letter-spacing:0.5px;
+    line-height:1;
+  }
+  .wordmark span{ color:var(--accent); }
+  .subtitle{
+    color:var(--ink-dim);
+    font-size:13px;
+    margin-top:4px;
+  }
+
+  /* unit toggle - signature tape-measure switch */
+  .unit-toggle{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:var(--panel);
+    border:1px solid var(--panel-line);
+    border-radius:999px;
+    padding:4px;
+    position:relative;
+    user-select:none;
+  }
+  .unit-toggle button{
+    border:none;
+    background:none;
+    color:var(--ink-dim);
+    font-family:var(--font-mono);
+    font-size:12px;
+    font-weight:600;
+    padding:7px 14px;
+    border-radius:999px;
+    cursor:pointer;
+    position:relative;
+    z-index:2;
+    letter-spacing:0.5px;
+    transition:color .2s ease;
+  }
+  .unit-toggle button.active{ color:var(--accent-ink); }
+  .unit-toggle .thumb{
+    position:absolute;
+    top:4px; bottom:4px;
+    width:calc(50% - 4px);
+    background:var(--accent);
+    border-radius:999px;
+    transition:transform .22s cubic-bezier(.4,0,.2,1);
+    background-image: repeating-linear-gradient(90deg, rgba(36,26,2,0.18) 0 1px, transparent 1px 6px);
+  }
+  .unit-toggle.metric .thumb{ transform:translateX(100%); }
+
+  /* ---------- Search + filters ---------- */
+  .toolbar{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+    margin-bottom:18px;
+  }
+  .search-box{
+    flex:1;
+    min-width:180px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:var(--panel);
+    border:1px solid var(--panel-line);
+    border-radius:var(--radius-md);
+    padding:9px 12px;
+  }
+  .search-box svg{ width:16px;height:16px; color:var(--ink-faint); flex-shrink:0; }
+  .search-box input{
+    background:none;border:none;outline:none;color:var(--ink);
+    font-family:var(--font-body); font-size:14px; width:100%;
+  }
+  .search-box input::placeholder{ color:var(--ink-faint); }
+  .chip-row{ display:flex; gap:8px; flex-wrap:wrap; }
+  .chip{
+    background:var(--panel);
+    border:1px solid var(--panel-line);
+    color:var(--ink-dim);
+    padding:7px 14px;
+    border-radius:999px;
+    font-size:12.5px;
+    font-weight:500;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .chip.active{ background:var(--steel); color:#08222a; border-color:var(--steel); font-weight:600; }
+
+  /* ---------- Item cards ---------- */
+  .group-heading{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:19px;
+    color:var(--ink-dim);
+    letter-spacing:0.3px;
+    margin:26px 0 10px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .group-heading .count{
+    font-family:var(--font-mono);
+    font-size:12px;
+    background:var(--panel);
+    padding:2px 9px;
+    border-radius:999px;
+    color:var(--ink-faint);
+  }
+  .cards{ display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:12px; }
+  .card{
+    background:var(--panel);
+    border:1px solid var(--panel-line);
+    border-radius:var(--radius-lg);
+    padding:16px 16px 14px;
+    position:relative;
+    overflow:hidden;
+  }
+  .card::before{
+    content:"";
+    position:absolute; left:0; top:0; bottom:0; width:5px;
+    background:var(--accent);
+  }
+  .card-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:10px;}
+  .card-title{ font-weight:600; font-size:15.5px; line-height:1.25; }
+  .card-cat{ font-size:11.5px; color:var(--steel); font-weight:500; margin-top:2px; }
+  .card-actions{ display:flex; gap:4px; flex-shrink:0; }
+  .icon-btn{
+    width:28px;height:28px;
+    display:flex;align-items:center;justify-content:center;
+    background:none;border:none;color:var(--ink-faint);
+    cursor:pointer; border-radius:var(--radius-sm);
+  }
+  .icon-btn:hover{ background:var(--bg-raised); color:var(--ink); }
+  .icon-btn.danger:hover{ color:var(--danger); }
+  .icon-btn svg{ width:16px;height:16px; }
+
+  .measure-grid{
+    display:flex; flex-wrap:wrap; gap:6px 10px; margin-top:6px;
+  }
+  .measure-pill{
+    font-family:var(--font-mono);
+    font-size:12px;
+    color:var(--ink);
+    background:var(--bg-raised);
+    border:1px solid var(--panel-line);
+    padding:4px 9px;
+    border-radius:var(--radius-sm);
+    display:flex; align-items:center; gap:5px;
+  }
+  .measure-pill .lbl{ color:var(--ink-faint); font-family:var(--font-body); font-size:10.5px; text-transform:uppercase; letter-spacing:0.4px;}
+  .circ-badge{
+    font-size:11px; color:var(--accent); font-family:var(--font-mono); margin-top:8px; display:inline-flex; align-items:center; gap:5px;
+  }
+  .notes-line{ font-size:12px; color:var(--ink-faint); margin-top:8px; font-style:italic; }
+
+  .empty-state{
+    text-align:center;
+    padding:70px 20px;
+    color:var(--ink-dim);
+  }
+  .empty-state svg{ width:48px;height:48px; color:var(--ink-faint); margin-bottom:14px; }
+  .empty-state h3{ font-family:var(--font-display); font-size:22px; color:var(--ink); margin:0 0 6px; font-weight:700; }
+  .btn{
+    font-family:var(--font-body); font-weight:600; font-size:13.5px;
+    border:none; border-radius:var(--radius-md); padding:10px 18px; cursor:pointer;
+  }
+  .btn-primary{ background:var(--accent); color:var(--accent-ink); }
+  .btn-primary:hover{ background:#ffd25e; }
+  .btn-ghost{ background:var(--panel); color:var(--ink); border:1px solid var(--panel-line); }
+  .btn-ghost:hover{ background:var(--bg-raised); }
+  .btn-danger{ background:var(--danger); color:#2a0a06; }
+
+  /* ---------- Categories view ---------- */
+  .cat-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:var(--panel); border:1px solid var(--panel-line);
+    border-radius:var(--radius-md); padding:12px 14px; margin-bottom:8px;
+  }
+  .cat-row .name{ font-weight:600; font-size:14.5px; }
+  .cat-row .meta{ color:var(--ink-faint); font-size:12px; font-family:var(--font-mono); }
+  .inline-add{ display:flex; gap:8px; margin-top:16px; }
+  .inline-add input{
+    flex:1; background:var(--panel); border:1px solid var(--panel-line); border-radius:var(--radius-md);
+    padding:10px 12px; color:var(--ink); font-family:var(--font-body); font-size:14px; outline:none;
+  }
+  .inline-add input:focus{ border-color:var(--steel); }
+
+  /* ---------- Settings view ---------- */
+  .settings-block{
+    background:var(--panel); border:1px solid var(--panel-line); border-radius:var(--radius-lg);
+    padding:18px 18px 20px; margin-bottom:16px;
+  }
+  .settings-block h4{ margin:0 0 4px; font-family:var(--font-display); font-size:18px; font-weight:700; }
+  .settings-block p{ margin:0 0 14px; color:var(--ink-dim); font-size:13px; line-height:1.5; }
+
+  /* ---------- Modal ---------- */
+  .overlay{
+    position:fixed; inset:0; background:rgba(10,13,18,0.72);
+    display:flex; align-items:flex-end; justify-content:center;
+    z-index:50; backdrop-filter: blur(2px);
+  }
+  .modal{
+    background:var(--bg-raised);
+    width:100%; max-width:560px;
+    max-height:92vh;
+    overflow-y:auto;
+    border-radius:20px 20px 0 0;
+    border:1px solid var(--panel-line);
+    border-bottom:none;
+    padding:22px 20px 26px;
+  }
+  @media(min-width:640px){
+    .overlay{ align-items:center; }
+    .modal{ border-radius:var(--radius-lg); border-bottom:1px solid var(--panel-line); max-height:88vh; }
+  }
+  .modal-handle{ width:40px;height:4px;background:var(--panel-line); border-radius:4px; margin:0 auto 16px; }
+  .modal h3{ font-family:var(--font-display); font-size:24px; font-weight:700; margin:0 0 16px; }
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-size:12px; color:var(--ink-dim); margin-bottom:6px; font-weight:500; letter-spacing:0.2px; }
+  .field input[type=text], .field textarea, .field select{
+    width:100%; background:var(--panel); border:1px solid var(--panel-line); border-radius:var(--radius-md);
+    padding:10px 12px; color:var(--ink); font-family:var(--font-body); font-size:14.5px; outline:none;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{ border-color:var(--steel); }
+  .field textarea{ resize:vertical; min-height:56px; }
+
+  .dim-row{ display:grid; grid-template-columns:1fr 90px 84px; gap:8px; align-items:center; margin-bottom:8px; }
+  .dim-row label{ font-size:13px; color:var(--ink); font-weight:500; margin:0; }
+  .dim-row input[type=number]{
+    background:var(--panel); border:1px solid var(--panel-line); border-radius:var(--radius-sm);
+    padding:8px 9px; color:var(--ink); font-family:var(--font-mono); font-size:13.5px; outline:none; width:100%;
+  }
+  .dim-row select{
+    background:var(--panel); border:1px solid var(--panel-line); border-radius:var(--radius-sm);
+    padding:8px 6px; color:var(--ink); font-family:var(--font-mono); font-size:12.5px; outline:none; width:100%;
+  }
+  .section-label{
+    font-family:var(--font-display); font-size:15px; font-weight:700; color:var(--ink-dim);
+    margin:18px 0 8px; letter-spacing:0.3px; display:flex; align-items:center; justify-content:space-between;
+  }
+  .circ-row{ display:grid; grid-template-columns:1fr 74px 70px 30px; gap:8px; align-items:center; margin-bottom:8px; }
+  .circ-row input[type=text]{
+    background:var(--panel); border:1px solid var(--panel-line); border-radius:var(--radius-sm);
+    padding:8px 9px; color:var(--ink); font-family:var(--font-body); font-size:13px; outline:none; width:100%;
+  }
+  .circ-row input[type=number]{
+    background:var(--panel); border:1px solid var(--panel-line); border-radius:var(--radius-sm);
+    padding:8px 8px; color:var(--ink); font-family:var(--font-mono); font-size:13px; outline:none; width:100%;
+  }
+  .circ-row select{
+    background:var(--panel); border:1px solid var(--panel-line); border-radius:var(--radius-sm);
+    padding:8px 4px; color:var(--ink); font-family:var(--font-mono); font-size:12px; outline:none; width:100%;
+  }
+  .add-link{
+    background:none; border:1px dashed var(--panel-line); color:var(--steel); font-family:var(--font-body);
+    font-size:13px; font-weight:600; padding:8px 12px; border-radius:var(--radius-sm); cursor:pointer; width:100%;
+    margin-top:2px;
+  }
+  .add-link:hover{ border-color:var(--steel); background:rgba(76,154,174,0.08); }
+  .modal-footer{ display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
+  .rm-btn{ background:none;border:none;color:var(--ink-faint); cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .rm-btn:hover{ color:var(--danger); }
+
+  /* ---------- Mobile bottom nav ---------- */
+  #bottomnav{ display:none; }
+  @media (max-width:760px){
+    #sidenav{ display:none; }
+    #main{ padding:20px 16px 96px; }
+    #bottomnav{
+      display:flex; position:fixed; bottom:0; left:0; right:0;
+      background:var(--bg-raised); border-top:1px solid var(--panel-line);
+      justify-content:space-around; padding:8px 6px calc(8px + env(safe-area-inset-bottom));
+      z-index:40;
+    }
+    #bottomnav .nav-btn{ padding:6px 4px; }
+    #bottomnav .nav-btn.add-btn{ margin:0; padding:10px; border-radius:14px; transform:translateY(-10px); }
+  }
+  #toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    background:var(--ink); color:var(--bg); font-size:13px; font-weight:600;
+    padding:10px 18px; border-radius:999px; z-index:100; opacity:0; pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease;
+  }
+  #toast.show{ opacity:1; transform:translateX(-50%) translateY(-8px); }
+  @media(max-width:760px){ #toast{ bottom:88px; } }
+
+  ::-webkit-scrollbar{ width:8px; height:8px; }
+  ::-webkit-scrollbar-thumb{ background:var(--panel-line); border-radius:4px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast"></div>
+
+<script>
+/* ============================= ICONS ============================= */
+const ICONS = {
+  logo: `<img src="icons/icon-192.png" alt="MeasureUp logo">`,
+  ruler: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5h18v7H3z"/><path d="M7 8.5v3M11 8.5v3M15 8.5v3M19 8.5v3"/></svg>`,
+  plus: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`,
+  tag: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12.5 12.5 20 4 11.5V4h7.5z"/><circle cx="8" cy="8" r="1.4" fill="currentColor" stroke="none"/></svg>`,
+  gear: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.5-2-3.4-2.3.8a7.7 7.7 0 0 0-1.7-1L15 3h-4l-.4 2.9a7.7 7.7 0 0 0-1.7 1l-2.3-.8-2 3.4L6.6 11a7.6 7.6 0 0 0 0 2l-2 1.5 2 3.4 2.3-.8a7.7 7.7 0 0 0 1.7 1L9 21h4l.4-2.9a7.7 7.7 0 0 0 1.7-1l2.3.8 2-3.4z"/></svg>`,
+  search: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>`,
+  edit: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>`,
+  trash: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4.5A1.5 1.5 0 0 1 9.5 3h5A1.5 1.5 0 0 1 16 4.5V6"/><path d="M19 6l-1 14.5A1.5 1.5 0 0 1 16.5 22h-9A1.5 1.5 0 0 1 6 20.5L5 6"/><path d="M10 11v6M14 11v6"/></svg>`,
+  box: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8l9 5 9-5Z"/><path d="M3 8v9l9 5 9-5V8"/><path d="M12 13v9"/></svg>`,
+  circle: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16" stroke-dasharray="2 3"/></svg>`,
+  close: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>`,
+};
+
+/* ============================= UNIT DATA ============================= */
+const LENGTH_UNITS = [
+  {key:'mm', label:'mm', toBase:1},
+  {key:'cm', label:'cm', toBase:10},
+  {key:'m',  label:'m',  toBase:1000},
+  {key:'in', label:'in', toBase:25.4},
+  {key:'ft', label:'ft', toBase:304.8},
+];
+const WEIGHT_UNITS = [
+  {key:'g',  label:'g',  toBase:1},
+  {key:'kg', label:'kg', toBase:1000},
+  {key:'oz', label:'oz', toBase:28.3495},
+  {key:'lb', label:'lb', toBase:453.592},
+];
+const VOLUME_UNITS = [
+  {key:'ml',   label:'mL',    toBase:1},
+  {key:'l',    label:'L',     toBase:1000},
+  {key:'floz', label:'fl oz', toBase:29.5735},
+  {key:'gal',  label:'gal',   toBase:3785.41},
+];
+const UNIT_TABLES = { length: LENGTH_UNITS, weight: WEIGHT_UNITS, volume: VOLUME_UNITS, circumference: LENGTH_UNITS };
+
+function unitInfo(table, key){ return table.find(u=>u.key===key) || table[0]; }
+function convert(value, fromKey, toKey, table){
+  if(value===''||value===null||value===undefined||isNaN(value)) return value;
+  const f = unitInfo(table, fromKey), t = unitInfo(table, toKey);
+  return (parseFloat(value) * f.toBase) / t.toBase;
+}
+function defaultUnit(dim, system){
+  if(dim==='length' || dim==='circumference') return system==='metric' ? 'cm' : 'in';
+  if(dim==='weight') return system==='metric' ? 'kg' : 'lb';
+  if(dim==='volume') return system==='metric' ? 'l' : 'gal';
+}
+function roundNice(n){
+  if(n===''||n===null||n===undefined||isNaN(n)) return '';
+  const num = parseFloat(n);
+  return (Math.round(num*1000)/1000).toString();
+}
+
+/* ============================= STATE ============================= */
+const DEFAULT_CATEGORIES = ['Room','Furniture','Object'];
+let state = {
+  items: [],
+  categories: [...DEFAULT_CATEGORIES],
+  prefs: { unitSystem: 'imperial' },
+  view: 'items',
+  filterCategory: 'all',
+  searchTerm: '',
+  modal: null,       // 'edit-item' | 'manage-categories-add' etc — we mainly use modalItem
+  modalItem: null,   // draft item object while add/edit modal open
+  confirmDelete: null, // {type:'item'|'category', id}
+};
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+
+/* ============================= STORAGE ============================= */
+/* Plain browser localStorage, wrapped in the same async shape the rest
+   of the app expects. This is what makes the app work standalone (PWA,
+   any browser) instead of only inside a Claude.ai artifact. */
+const localDB = {
+  async get(key){
+    const raw = localStorage.getItem(key);
+    if(raw===null) return null;
+    return { key, value: raw };
+  },
+  async set(key, value){
+    localStorage.setItem(key, value);
+    return { key, value };
+  },
+};
+
+async function loadState(){
+  try{
+    const items = await localDB.get('measureup:items');
+    if(items) state.items = JSON.parse(items.value);
+  }catch(e){ /* no data yet */ }
+  try{
+    const cats = await localDB.get('measureup:categories');
+    if(cats) state.categories = JSON.parse(cats.value);
+  }catch(e){ /* no data yet */ }
+  try{
+    const prefs = await localDB.get('measureup:prefs');
+    if(prefs) state.prefs = JSON.parse(prefs.value);
+  }catch(e){ /* no data yet */ }
+}
+async function saveItems(){
+  try{ await localDB.set('measureup:items', JSON.stringify(state.items)); }
+  catch(e){ showToast('Could not save — your device storage may be full'); }
+}
+async function saveCategories(){
+  try{ await localDB.set('measureup:categories', JSON.stringify(state.categories)); }
+  catch(e){ showToast('Could not save categories'); }
+}
+async function savePrefs(){
+  try{ await localDB.set('measureup:prefs', JSON.stringify(state.prefs)); }
+  catch(e){ showToast('Could not save preferences'); }
+}
+
+let toastTimer;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+/* ============================= ITEM MODEL ============================= */
+function blankItem(){
+  const sys = state.prefs.unitSystem;
+  return {
+    id: uid(),
+    name: '',
+    category: state.categories[0] || 'Object',
+    notes: '',
+    length:   { value:'', unit: defaultUnit('length', sys) },
+    width:    { value:'', unit: defaultUnit('length', sys) },
+    height:   { value:'', unit: defaultUnit('length', sys) },
+    volume:   { value:'', unit: defaultUnit('volume', sys) },
+    weight:   { value:'', unit: defaultUnit('weight', sys) },
+    circumferences: [], // [{id, label, value, unit}]
+    createdAt: Date.now(),
+  };
+}
+
+/* ============================= RENDER ROOT ============================= */
+function render(){
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    ${renderSidenav()}
+    <div id="main">
+      ${renderTopbar()}
+      ${renderViewBody()}
+    </div>
+    ${renderBottomnav()}
+    ${state.modalItem ? renderItemModal() : ''}
+    ${state.confirmDelete ? renderConfirmModal() : ''}
+  `;
+  attachEvents();
+}
+
+function navButtons(activeView){
+  const items = [
+    {id:'items', icon:ICONS.ruler, label:'Items'},
+    {id:'__add', icon:ICONS.plus, label:'Add', special:'add-btn'},
+    {id:'categories', icon:ICONS.tag, label:'Categories'},
+    {id:'settings', icon:ICONS.gear, label:'Settings'},
+  ];
+  return items.map(it=>`
+    <button class="nav-btn ${it.special||''} ${activeView===it.id?'active':''}" data-nav="${it.id}" title="${it.label}">
+      ${it.icon}
+      <span>${it.label}</span>
+    </button>
+  `).join('');
+}
+
+function renderSidenav(){
+  return `
+    <nav id="sidenav">
+      <div class="brand-mark">${ICONS.logo}</div>
+      ${navButtons(state.view)}
+    </nav>
+  `;
+}
+function renderBottomnav(){
+  return `<nav id="bottomnav">${navButtons(state.view)}</nav>`;
+}
+
+function renderTopbar(){
+  const sys = state.prefs.unitSystem;
+  return `
+    <header class="topbar">
+      <div>
+        <div class="wordmark">MEASURE<span>UP</span></div>
+        <div class="subtitle">Rooms, furniture &amp; objects — measured once, converted everywhere.</div>
+      </div>
+      <div class="unit-toggle ${sys==='metric'?'metric':''}" id="unitToggle">
+        <div class="thumb"></div>
+        <button data-sys="imperial" class="${sys==='imperial'?'active':''}">IMPERIAL</button>
+        <button data-sys="metric" class="${sys==='metric'?'active':''}">METRIC</button>
+      </div>
+    </header>
+  `;
+}
+
+function renderViewBody(){
+  if(state.view==='items') return renderItemsView();
+  if(state.view==='categories') return renderCategoriesView();
+  if(state.view==='settings') return renderSettingsView();
+  return '';
+}
+
+/* ============================= ITEMS VIEW ============================= */
+function formatMeasure(field, dim){
+  if(field.value===''||field.value===undefined||field.value===null) return null;
+  const table = UNIT_TABLES[dim];
+  const u = unitInfo(table, field.unit);
+  return `${roundNice(field.value)} ${u.label}`;
+}
+
+function itemCard(item){
+  const pills = [];
+  const l = formatMeasure(item.length,'length'); if(l) pills.push(['L', l]);
+  const w = formatMeasure(item.width,'length'); if(w) pills.push(['W', w]);
+  const h = formatMeasure(item.height,'length'); if(h) pills.push(['H', h]);
+  const v = formatMeasure(item.volume,'volume'); if(v) pills.push(['Vol', v]);
+  const wt = formatMeasure(item.weight,'weight'); if(wt) pills.push(['Wt', wt]);
+
+  return `
+    <div class="card" data-item-id="${item.id}">
+      <div class="card-top">
+        <div>
+          <div class="card-title">${escapeHtml(item.name || 'Untitled item')}</div>
+          <div class="card-cat">${escapeHtml(item.category)}</div>
+        </div>
+        <div class="card-actions">
+          <button class="icon-btn" data-edit-item="${item.id}" title="Edit">${ICONS.edit}</button>
+          <button class="icon-btn danger" data-del-item="${item.id}" title="Delete">${ICONS.trash}</button>
+        </div>
+      </div>
+      ${pills.length ? `<div class="measure-grid">${pills.map(p=>`<span class="measure-pill"><span class="lbl">${p[0]}</span>${p[1]}</span>`).join('')}</div>` : `<div class="notes-line">No dimensions recorded yet.</div>`}
+      ${item.circumferences.length ? `<div class="circ-badge">${ICONS.circle.replace('viewBox="0 0 24 24"','viewBox="0 0 24 24" width="12" height="12"')} ${item.circumferences.length} circumference ${item.circumferences.length===1?'measurement':'measurements'}</div>` : ''}
+      ${item.notes ? `<div class="notes-line">${escapeHtml(item.notes)}</div>` : ''}
+    </div>
+  `;
+}
+
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function renderItemsView(){
+  const term = state.searchTerm.trim().toLowerCase();
+  let filtered = state.items.filter(it=>{
+    const matchesCat = state.filterCategory==='all' || it.category===state.filterCategory;
+    const matchesTerm = !term || it.name.toLowerCase().includes(term) || (it.notes||'').toLowerCase().includes(term);
+    return matchesCat && matchesTerm;
+  });
+
+  const chips = ['all', ...state.categories].map(c=>`
+    <button class="chip ${state.filterCategory===c?'active':''}" data-filter-cat="${escapeHtml(c)}">${c==='all'?'All':escapeHtml(c)}</button>
+  `).join('');
+
+  let body;
+  if(state.items.length===0){
+    body = `
+      <div class="empty-state">
+        ${ICONS.ruler}
+        <h3>No measurements yet</h3>
+        <p>Add a room, a piece of furniture, or any object to start tracking its dimensions.</p>
+        <br/>
+        <button class="btn btn-primary" data-nav="__add">Add your first item</button>
+      </div>
+    `;
+  } else if(filtered.length===0){
+    body = `<div class="empty-state"><h3>No matches</h3><p>Try a different search term or category filter.</p></div>`;
+  } else {
+    // group by category, in category-list order, then any leftover categories
+    const grouped = {};
+    filtered.forEach(it=>{ (grouped[it.category] = grouped[it.category]||[]).push(it); });
+    const orderedCats = [...state.categories.filter(c=>grouped[c]), ...Object.keys(grouped).filter(c=>!state.categories.includes(c))];
+    body = orderedCats.map(cat=>`
+      <div class="group-heading">${escapeHtml(cat)} <span class="count">${grouped[cat].length}</span></div>
+      <div class="cards">${grouped[cat].map(itemCard).join('')}</div>
+    `).join('');
+  }
+
+  return `
+    <div class="toolbar">
+      <div class="search-box">${ICONS.search}<input id="searchInput" type="text" placeholder="Search items…" value="${escapeHtml(state.searchTerm)}"></div>
+    </div>
+    <div class="chip-row" style="margin-bottom:6px;">${chips}</div>
+    ${body}
+  `;
+}
+
+/* ============================= CATEGORIES VIEW ============================= */
+function renderCategoriesView(){
+  const rows = state.categories.map(cat=>{
+    const count = state.items.filter(it=>it.category===cat).length;
+    const isDefault = DEFAULT_CATEGORIES.includes(cat);
+    return `
+      <div class="cat-row">
+        <div>
+          <div class="name">${escapeHtml(cat)}</div>
+          <div class="meta">${count} item${count===1?'':'s'}</div>
+        </div>
+        <div class="card-actions">
+          <button class="icon-btn" data-rename-cat="${escapeHtml(cat)}" title="Rename">${ICONS.edit}</button>
+          <button class="icon-btn danger" data-del-cat="${escapeHtml(cat)}" title="Delete">${ICONS.trash}</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="group-heading" style="margin-top:0;">Categories</div>
+    ${rows}
+    <div class="inline-add">
+      <input id="newCatInput" type="text" placeholder="New category name…">
+      <button class="btn btn-primary" id="addCatBtn">Add</button>
+    </div>
+  `;
+}
+
+/* ============================= SETTINGS VIEW ============================= */
+function renderSettingsView(){
+  const sys = state.prefs.unitSystem;
+  return `
+    <div class="group-heading" style="margin-top:0;">Settings</div>
+
+    <div class="settings-block">
+      <h4>Unit system</h4>
+      <p>Switch between imperial and metric. Every saved measurement converts automatically — nothing is recalculated by hand.</p>
+      <div class="unit-toggle ${sys==='metric'?'metric':''}" id="unitToggleSettings">
+        <div class="thumb"></div>
+        <button data-sys="imperial" class="${sys==='imperial'?'active':''}">IMPERIAL</button>
+        <button data-sys="metric" class="${sys==='metric'?'active':''}">METRIC</button>
+      </div>
+    </div>
+
+    <div class="settings-block">
+      <h4>Install app</h4>
+      <p>Add MeasureUp to your home screen so it opens full-screen, like a native app, and keeps working offline.</p>
+      <button class="btn btn-primary" id="installBtn" style="display:none;">Install MeasureUp</button>
+      <p style="margin-top:10px;">On Android Chrome, if this button doesn't appear, use the browser menu (⋮) → "Add to Home screen." On iPhone, use the Share button → "Add to Home Screen."</p>
+    </div>
+
+    <div class="settings-block">
+      <h4>App icon</h4>
+      <p>Your MeasureUp logo is set as the app icon — it appears in this navigation, on your home screen after install, and as the browser tab icon.</p>
+    </div>
+
+    <div class="settings-block">
+      <h4>Data</h4>
+      <p>Your items and categories are saved to your account and stay private to you.</p>
+      <button class="btn btn-danger" id="clearDataBtn">Clear all data</button>
+    </div>
+  `;
+}
+
+/* ============================= ITEM MODAL ============================= */
+function dimRow(dimKey, label, dim){
+  const item = state.modalItem;
+  const field = item[dimKey];
+  const table = UNIT_TABLES[dim];
+  const opts = table.map(u=>`<option value="${u.key}" ${field.unit===u.key?'selected':''}>${u.label}</option>`).join('');
+  return `
+    <div class="dim-row">
+      <label>${label}</label>
+      <input type="number" inputmode="decimal" step="any" data-dim="${dimKey}" value="${field.value}" placeholder="0">
+      <select data-dim-unit="${dimKey}">${opts}</select>
+    </div>
+  `;
+}
+
+function circRow(c){
+  const opts = LENGTH_UNITS.map(u=>`<option value="${u.key}" ${c.unit===u.key?'selected':''}>${u.label}</option>`).join('');
+  return `
+    <div class="circ-row" data-circ-id="${c.id}">
+      <input type="text" data-circ-label="${c.id}" placeholder="e.g. waist, rim, base" value="${escapeHtml(c.label)}">
+      <input type="number" inputmode="decimal" step="any" data-circ-value="${c.id}" placeholder="0" value="${c.value}">
+      <select data-circ-unit="${c.id}">${opts}</select>
+      <button class="rm-btn" data-circ-remove="${c.id}" title="Remove">${ICONS.close}</button>
+    </div>
+  `;
+}
+
+function renderItemModal(){
+  const item = state.modalItem;
+  const isEdit = state.items.some(i=>i.id===item.id);
+  const catOpts = state.categories.map(c=>`<option value="${escapeHtml(c)}" ${item.category===c?'selected':''}>${escapeHtml(c)}</option>`).join('');
+
+  return `
+    <div class="overlay" id="modalOverlay">
+      <div class="modal">
+        <div class="modal-handle"></div>
+        <h3>${isEdit ? 'Edit item' : 'Add item'}</h3>
+
+        <div class="field">
+          <label>Name</label>
+          <input type="text" id="itemName" placeholder="e.g. Living room, Oak dresser, Moving box A" value="${escapeHtml(item.name)}">
+        </div>
+        <div class="field">
+          <label>Category</label>
+          <select id="itemCategory">${catOpts}</select>
+        </div>
+
+        <div class="section-label">Dimensions</div>
+        ${dimRow('length','Length','length')}
+        ${dimRow('width','Width','length')}
+        ${dimRow('height','Height','length')}
+        ${dimRow('volume','Volume','volume')}
+        ${dimRow('weight','Weight','weight')}
+
+        <div class="section-label">Circumference <span style="font-size:11px;color:var(--ink-faint);font-weight:500;">(add as many as you need)</span></div>
+        <div id="circList">${item.circumferences.map(circRow).join('')}</div>
+        <button class="add-link" id="addCircBtn">+ Add circumference measurement</button>
+
+        <div class="field" style="margin-top:16px;">
+          <label>Notes</label>
+          <textarea id="itemNotes" placeholder="Optional details…">${escapeHtml(item.notes)}</textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-ghost" id="cancelModalBtn">Cancel</button>
+          <button class="btn btn-primary" id="saveItemBtn">Save item</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderConfirmModal(){
+  const cd = state.confirmDelete;
+  let title, body;
+  if(cd.type==='item'){
+    title = 'Delete this item?';
+    body = 'This measurement record will be permanently removed.';
+  } else {
+    const count = state.items.filter(it=>it.category===cd.id).length;
+    title = `Delete "${escapeHtml(cd.id)}"?`;
+    body = count>0
+      ? `${count} item${count===1?'':'s'} in this category will be moved to "Object".`
+      : 'This category has no items in it.';
+  }
+  return `
+    <div class="overlay" id="confirmOverlay">
+      <div class="modal" style="max-width:380px;">
+        <h3>${title}</h3>
+        <p style="color:var(--ink-dim);font-size:13.5px;margin:-6px 0 18px;">${body}</p>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" id="cancelConfirmBtn">Cancel</button>
+          <button class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ============================= EVENTS ============================= */
+function attachEvents(){
+  // nav
+  document.querySelectorAll('[data-nav]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const target = btn.getAttribute('data-nav');
+      if(target==='__add'){ openAddModal(); return; }
+      state.view = target;
+      render();
+    });
+  });
+
+  // global unit toggle(s)
+  ['unitToggle','unitToggleSettings'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.querySelectorAll('button').forEach(b=>{
+      b.addEventListener('click', ()=> switchUnitSystem(b.getAttribute('data-sys')));
+    });
+  });
+
+  if(state.view==='items'){
+    const search = document.getElementById('searchInput');
+    if(search){
+      search.addEventListener('input', e=>{ state.searchTerm = e.target.value; render(); preserveFocus('searchInput'); });
+    }
+    document.querySelectorAll('[data-filter-cat]').forEach(chip=>{
+      chip.addEventListener('click', ()=>{ state.filterCategory = chip.getAttribute('data-filter-cat'); render(); });
+    });
+    document.querySelectorAll('[data-edit-item]').forEach(b=>{
+      b.addEventListener('click', ()=> openEditModal(b.getAttribute('data-edit-item')));
+    });
+    document.querySelectorAll('[data-del-item]').forEach(b=>{
+      b.addEventListener('click', ()=>{ state.confirmDelete = {type:'item', id: b.getAttribute('data-del-item')}; render(); });
+    });
+  }
+
+  if(state.view==='categories'){
+    const addBtn = document.getElementById('addCatBtn');
+    const input = document.getElementById('newCatInput');
+    if(addBtn){
+      addBtn.addEventListener('click', ()=>{
+        const val = input.value.trim();
+        if(!val) return;
+        if(state.categories.some(c=>c.toLowerCase()===val.toLowerCase())){ showToast('Category already exists'); return; }
+        state.categories.push(val);
+        saveCategories();
+        render();
+        showToast('Category added');
+      });
+      input.addEventListener('keydown', e=>{ if(e.key==='Enter') addBtn.click(); });
+    }
+    document.querySelectorAll('[data-rename-cat]').forEach(b=>{
+      b.addEventListener('click', ()=>{
+        const old = b.getAttribute('data-rename-cat');
+        const next = prompt('Rename category', old);
+        if(!next || !next.trim() || next.trim()===old) return;
+        const trimmed = next.trim();
+        state.categories = state.categories.map(c=> c===old ? trimmed : c);
+        state.items.forEach(it=>{ if(it.category===old) it.category = trimmed; });
+        saveCategories(); saveItems(); render();
+        showToast('Category renamed');
+      });
+    });
+    document.querySelectorAll('[data-del-cat]').forEach(b=>{
+      b.addEventListener('click', ()=>{ state.confirmDelete = {type:'category', id: b.getAttribute('data-del-cat')}; render(); });
+    });
+  }
+
+  if(state.view==='settings'){
+    const installBtn = document.getElementById('installBtn');
+    if(installBtn){
+      if(deferredInstallPrompt) installBtn.style.display = 'inline-block';
+      installBtn.addEventListener('click', triggerInstallPrompt);
+    }
+    const clearBtn = document.getElementById('clearDataBtn');
+    if(clearBtn){
+      clearBtn.addEventListener('click', ()=>{
+        if(confirm('Clear all items and categories? This cannot be undone.')){
+          state.items = [];
+          state.categories = [...DEFAULT_CATEGORIES];
+          saveItems(); saveCategories();
+          render();
+          showToast('All data cleared');
+        }
+      });
+    }
+  }
+
+  // item modal
+  const overlay = document.getElementById('modalOverlay');
+  if(overlay){
+    overlay.addEventListener('mousedown', e=>{ if(e.target===overlay) closeItemModal(); });
+    document.getElementById('cancelModalBtn').addEventListener('click', closeItemModal);
+    document.getElementById('saveItemBtn').addEventListener('click', saveItemFromModal);
+    document.getElementById('itemName').addEventListener('input', e=>{ state.modalItem.name = e.target.value; });
+    document.getElementById('itemCategory').addEventListener('change', e=>{ state.modalItem.category = e.target.value; });
+    document.getElementById('itemNotes').addEventListener('input', e=>{ state.modalItem.notes = e.target.value; });
+
+    ['length','width','height','volume','weight'].forEach(dim=>{
+      const inp = document.querySelector(`[data-dim="${dim}"]`);
+      const sel = document.querySelector(`[data-dim-unit="${dim}"]`);
+      inp.addEventListener('input', e=>{ state.modalItem[dim].value = e.target.value; });
+      sel.addEventListener('change', e=>{
+        // convert existing value to newly chosen unit so the physical size stays correct
+        const dimType = dim==='volume' ? 'volume' : (dim==='weight' ? 'weight' : 'length');
+        const table = UNIT_TABLES[dimType];
+        const field = state.modalItem[dim];
+        if(field.value!==''){
+          field.value = roundNice(convert(field.value, field.unit, e.target.value, table));
+        }
+        field.unit = e.target.value;
+        render();
+      });
+    });
+
+    document.getElementById('addCircBtn').addEventListener('click', ()=>{
+      state.modalItem.circumferences.push({ id: uid(), label:'', value:'', unit: defaultUnit('circumference', state.prefs.unitSystem) });
+      render();
+      const list = document.getElementById('circList');
+      if(list) list.scrollIntoView({behavior:'smooth', block:'end'});
+    });
+    document.querySelectorAll('[data-circ-remove]').forEach(b=>{
+      b.addEventListener('click', ()=>{
+        const id = b.getAttribute('data-circ-remove');
+        state.modalItem.circumferences = state.modalItem.circumferences.filter(c=>c.id!==id);
+        render();
+      });
+    });
+    document.querySelectorAll('[data-circ-label]').forEach(inp=>{
+      inp.addEventListener('input', e=>{
+        const id = inp.getAttribute('data-circ-label');
+        const c = state.modalItem.circumferences.find(c=>c.id===id);
+        if(c) c.label = e.target.value;
+      });
+    });
+    document.querySelectorAll('[data-circ-value]').forEach(inp=>{
+      inp.addEventListener('input', e=>{
+        const id = inp.getAttribute('data-circ-value');
+        const c = state.modalItem.circumferences.find(c=>c.id===id);
+        if(c) c.value = e.target.value;
+      });
+    });
+    document.querySelectorAll('[data-circ-unit]').forEach(sel=>{
+      sel.addEventListener('change', e=>{
+        const id = sel.getAttribute('data-circ-unit');
+        const c = state.modalItem.circumferences.find(c=>c.id===id);
+        if(c){
+          if(c.value!==''){ c.value = roundNice(convert(c.value, c.unit, e.target.value, LENGTH_UNITS)); }
+          c.unit = e.target.value;
+        }
+        render();
+      });
+    });
+  }
+
+  // confirm modal
+  const confirmOverlay = document.getElementById('confirmOverlay');
+  if(confirmOverlay){
+    confirmOverlay.addEventListener('mousedown', e=>{ if(e.target===confirmOverlay){ state.confirmDelete = null; render(); } });
+    document.getElementById('cancelConfirmBtn').addEventListener('click', ()=>{ state.confirmDelete = null; render(); });
+    document.getElementById('confirmDeleteBtn').addEventListener('click', performConfirmedDelete);
+  }
+}
+
+function preserveFocus(id){
+  const el = document.getElementById(id);
+  if(el){ el.focus(); const v = el.value; el.value=''; el.value=v; }
+}
+
+/* ============================= ACTIONS ============================= */
+function openAddModal(){
+  state.modalItem = blankItem();
+  render();
+}
+function openEditModal(id){
+  const item = state.items.find(i=>i.id===id);
+  if(!item) return;
+  state.modalItem = JSON.parse(JSON.stringify(item));
+  render();
+}
+function closeItemModal(){
+  state.modalItem = null;
+  render();
+}
+function saveItemFromModal(){
+  const draft = state.modalItem;
+  if(!draft.name.trim()){
+    showToast('Give this item a name first');
+    return;
+  }
+  draft.circumferences = draft.circumferences.filter(c=> c.label.trim() !== '' || c.value !== '');
+  const idx = state.items.findIndex(i=>i.id===draft.id);
+  if(idx>=0){ state.items[idx] = draft; showToast('Item updated'); }
+  else { state.items.push(draft); showToast('Item added'); }
+  saveItems();
+  state.modalItem = null;
+  render();
+}
+
+function performConfirmedDelete(){
+  const cd = state.confirmDelete;
+  if(cd.type==='item'){
+    state.items = state.items.filter(i=>i.id!==cd.id);
+    saveItems();
+    showToast('Item deleted');
+  } else {
+    state.items.forEach(it=>{ if(it.category===cd.id) it.category='Object'; });
+    if(!state.categories.includes('Object')) state.categories.push('Object');
+    state.categories = state.categories.filter(c=>c!==cd.id);
+    if(state.filterCategory===cd.id) state.filterCategory='all';
+    saveCategories(); saveItems();
+    showToast('Category deleted');
+  }
+  state.confirmDelete = null;
+  render();
+}
+
+function switchUnitSystem(sys){
+  if(state.prefs.unitSystem===sys) return;
+  state.prefs.unitSystem = sys;
+  // convert every stored item's fields to the new system's default unit
+  state.items.forEach(it=>{
+    ['length','width','height'].forEach(dim=>{
+      const f = it[dim];
+      const target = defaultUnit('length', sys);
+      if(f.value!==''){ f.value = roundNice(convert(f.value, f.unit, target, LENGTH_UNITS)); }
+      f.unit = target;
+    });
+    {
+      const f = it.volume; const target = defaultUnit('volume', sys);
+      if(f.value!==''){ f.value = roundNice(convert(f.value, f.unit, target, VOLUME_UNITS)); }
+      f.unit = target;
+    }
+    {
+      const f = it.weight; const target = defaultUnit('weight', sys);
+      if(f.value!==''){ f.value = roundNice(convert(f.value, f.unit, target, WEIGHT_UNITS)); }
+      f.unit = target;
+    }
+    const target = defaultUnit('circumference', sys);
+    it.circumferences.forEach(c=>{
+      if(c.value!==''){ c.value = roundNice(convert(c.value, c.unit, target, LENGTH_UNITS)); }
+      c.unit = target;
+    });
+  });
+  // also update the currently open modal draft, if any
+  if(state.modalItem){
+    const draft = state.modalItem;
+    ['length','width','height'].forEach(dim=>{
+      const f = draft[dim]; const target = defaultUnit('length', sys);
+      if(f.value!==''){ f.value = roundNice(convert(f.value, f.unit, target, LENGTH_UNITS)); }
+      f.unit = target;
+    });
+    {
+      const f = draft.volume; const target = defaultUnit('volume', sys);
+      if(f.value!==''){ f.value = roundNice(convert(f.value, f.unit, target, VOLUME_UNITS)); }
+      f.unit = target;
+    }
+    {
+      const f = draft.weight; const target = defaultUnit('weight', sys);
+      if(f.value!==''){ f.value = roundNice(convert(f.value, f.unit, target, WEIGHT_UNITS)); }
+      f.unit = target;
+    }
+    const ctarget = defaultUnit('circumference', sys);
+    draft.circumferences.forEach(c=>{
+      if(c.value!==''){ c.value = roundNice(convert(c.value, c.unit, ctarget, LENGTH_UNITS)); }
+      c.unit = ctarget;
+    });
+  }
+  savePrefs(); saveItems();
+  render();
+  showToast(`Switched to ${sys}`);
+}
+
+/* ============================= INIT ============================= */
+(async function init(){
+  await loadState();
+  render();
+})();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{ /* offline caching just won't be available */ });
+  });
+}
+
+/* ---- "Add to Home Screen" install prompt (Android/Chrome) ---- */
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e)=>{
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  const btn = document.getElementById('installBtn');
+  if(btn) btn.style.display = 'inline-block';
+});
+function triggerInstallPrompt(){
+  if(!deferredInstallPrompt){ showToast('Use your browser menu → "Add to Home screen"'); return; }
+  deferredInstallPrompt.prompt();
+  deferredInstallPrompt.userChoice.finally(()=>{ deferredInstallPrompt = null; });
+}
+</script>
+</body>
+</html>
