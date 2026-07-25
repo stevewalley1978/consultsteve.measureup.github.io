@@ -1,0 +1,12 @@
+{
+  "appId": "com.measureup.app",
+  "appName": "MeasureUp",
+  "webDir": "www",
+  "backgroundColor": "#141922",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "backgroundColor": "#141922"
+  }
+}

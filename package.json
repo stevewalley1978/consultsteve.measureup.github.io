@@ -1,0 +1,19 @@
+{
+  "name": "measureup",
+  "version": "1.0.0",
+  "description": "MeasureUp — track measurements of rooms, furniture, and objects with automatic imperial/metric conversion.",
+  "private": true,
+  "scripts": {
+    "sync": "cap sync android",
+    "open:android": "cap open android",
+    "run:android": "cap run android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/core": "^6.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^6.1.2"
+  }
+}
